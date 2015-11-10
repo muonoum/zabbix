@@ -34,11 +34,11 @@ func (p Params) WithGroups(groups []int) Params {
 var MaxPriority = len(Priorities)
 
 type Command struct {
-	JsonRPC string  `json:"jsonrpc"`
-	ID      int     `json:"id"`
-	Auth    *string `json:"auth"`
-	Params  Params  `json:"params"`
-	Method  string  `json:"method"`
+	JsonRPC string      `json:"jsonrpc"`
+	ID      int         `json:"id"`
+	Auth    *string     `json:"auth"`
+	Params  interface{} `json:"params"`
+	Method  string      `json:"method"`
 }
 
 type Client struct {

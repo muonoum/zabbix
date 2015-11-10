@@ -45,7 +45,7 @@ func (c *Client) Login() error {
 	return nil
 }
 
-func (c *Client) Base(method string, params Params) (*Response, error) {
+func (c *Client) Base(method string, params interface{}) (*Response, error) {
 	cmd := &Command{JsonRPC: "2.0", ID: 0, Params: params, Method: method}
 
 	if method != "user.login" {
@@ -87,7 +87,7 @@ func (c *Client) Base(method string, params Params) (*Response, error) {
 	return res, nil
 }
 
-func (c *Client) Call(method string, params Params) (res *Response, err error) {
+func (c *Client) Call(method string, params interface{}) (res *Response, err error) {
 	res, err = c.Base(method, params)
 	if _, ok := err.(authError); ok {
 		debug("Authentication error: %s", err)
@@ -106,7 +106,7 @@ func (c *Client) Call(method string, params Params) (res *Response, err error) {
 	return
 }
 
-func (c *Client) Decode(method string, object interface{}, params Params) error {
+func (c *Client) Decode(method string, object interface{}, params interface{}) error {
 	if res, err := c.Call(method, params); err != nil {
 		return err
 	} else {
