@@ -12,6 +12,15 @@ const (
 	Problem
 )
 
+const (
+	Unclassified = iota
+	Info
+	Warning
+	Average
+	High
+	Disaster
+)
+
 var Priorities = []string{
 	"unclassified",
 	"info",
