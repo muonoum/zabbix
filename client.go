@@ -1,115 +1,69 @@
 package zabbix
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"net/http"
-
-	. "github.com/tj/go-debug"
+	"sync"
+	"time"
 )
 
-var debug = Debug("zabbix")
+type Client struct {
+	sync.Mutex
+	user     string
+	password string
+	uri      string
+	token    *string
+	timeout  time.Duration
+}
 
-func NewClient(uri, user, password string) *Client {
+func New(uri, user, password string, timeout time.Duration) *Client {
 	return &Client{
 		user:     user,
 		password: password,
 		uri:      uri,
 		token:    nil,
+		timeout:  timeout,
 	}
 }
 
-func (c *Client) SetToken(token string) {
-	c.token = &token
-}
+func (client *Client) Login() error {
+	defer client.Unlock()
+	client.Lock()
 
-func (c *Client) Login() error {
-	debug("Trying to log in as `%s'", c.user)
+	if client.token != nil {
+		return nil
+	}
 
-	defer c.mu.Unlock()
-	c.mu.Lock()
+	response, err := client.Call("user.login", Params{
+		"user": client.user, "password": client.password,
+	})
+	if err != nil {
+		return err
+	}
 
-	if c.token == nil {
-		if res, err := c.Base("user.login", Params{"user": c.user, "password": c.password}); err != nil {
-			return err
-		} else if err := res.Decode(&c.token); err != nil {
-			return fmt.Errorf("Could not decode authentication token: %s", err)
-		}
-
-		debug("Logged in as `%s', token `%s'", c.user, *c.token)
-	} else {
-		debug("Using existing token `%s'", *c.token)
+	if err = response.Decode(&client.token); err != nil {
+		return fmt.Errorf("Could not decode authentication token: %s", err)
 	}
 
 	return nil
 }
 
-func (c *Client) Base(method string, params interface{}) (*Response, error) {
-	cmd := &Command{JsonRPC: "2.0", ID: 0, Params: params, Method: method}
+func (client *Client) Logout() error {
+	defer client.Unlock()
+	client.Lock()
 
-	if method != "user.login" {
-		cmd.Auth = c.token
+	if client.token == nil {
+		return nil
 	}
 
-	data, err := json.Marshal(cmd)
-	if err != nil {
-		return nil, err
-	}
-
-	response, err := http.Post(c.uri, "application/json", bytes.NewReader(data))
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-
-	var res *Response
-	if err := json.NewDecoder(response.Body).Decode(&res); err != nil {
-		return nil, err
-	}
-
-	if res.Error != nil {
-		var e responseError
-		if err := json.Unmarshal(*res.Error, &e); err != nil {
-			return res, fmt.Errorf("Could not decode error object: %s", err)
-		}
-
-		switch e.Data {
-		case "Session terminated, re-login, please.":
-			return res, authError{e.Data}
-		case "Not authorised.":
-			return res, authError{e.Data}
-		default:
-			return res, e
-		}
-	}
-
-	return res, nil
+	_, err := client.Call("user.logout", Params{"token": *client.token})
+	return err
 }
 
-func (c *Client) Call(method string, params interface{}) (res *Response, err error) {
-	res, err = c.Base(method, params)
-	if _, ok := err.(authError); ok {
-		debug("Authentication error: %s", err)
-
-		c.token = nil
-
-		if err = c.Login(); err != nil {
-			return
-		} else if res, err = c.Base(method, params); err != nil {
-			return
-		}
-	} else if err != nil {
-		return
-	}
-
-	return
-}
-
-func (c *Client) Decode(method string, object interface{}, params interface{}) error {
-	if res, err := c.Call(method, params); err != nil {
+func (client *Client) Decode(method string, object interface{}, params interface{}) error {
+	response, err := client.Call(method, params)
+	if err != nil {
 		return err
-	} else {
-		return res.Decode(object)
 	}
+
+	return response.Decode(object)
 }
