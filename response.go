@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	SessionTerminated = "Session terminated, re-login, please."
-	NotAuthorised     = "Not authorised."
+	errorSessionTerminated = "Session terminated, re-login, please."
+	errorNotAuthorised     = "Not authorised."
 )
 
 type ResponseError struct {
@@ -46,7 +46,7 @@ func ResponseFromReader(reader io.ReadCloser) (rsp Response, _ error) {
 	}
 
 	switch err := rsp.Error; err.Error() {
-	case SessionTerminated, NotAuthorised:
+	case errorSessionTerminated, errorNotAuthorised:
 		return rsp, AuthenticationError{err.Error()}
 	default:
 		return rsp, err
