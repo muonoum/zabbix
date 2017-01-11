@@ -13,12 +13,3 @@ const (
 	High
 	Disaster
 )
-
-var Priorities = []string{
-	"unclassified",
-	"info",
-	"warning",
-	"average",
-	"high",
-	"disaster",
-}
