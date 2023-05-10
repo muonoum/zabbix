@@ -34,7 +34,7 @@ func (client *Client) Login() error {
 	}
 
 	response, err := client.Call("user.login", Params{
-		"user": client.user, "password": client.password,
+		"username": client.user, "password": client.password,
 	})
 	if err != nil {
 		return err
