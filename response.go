@@ -9,7 +9,7 @@ import (
 
 const (
 	errorSessionTerminated = "Session terminated, re-login, please."
-	errorNotAuthorised     = "Not authorised."
+	errorNotAuthorised     = "Not authorized."
 )
 
 type ResponseError struct {
